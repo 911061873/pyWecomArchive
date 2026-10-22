@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=77", "wheel>=0.45"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pywecomarchive"
+version = "0.1.0"
+description = "企业微信会话内容存档原生 SDK 的 Python 封装"
+readme = "README.md"
+requires-python = ">=3.10"
+license-files = ["THIRD_PARTY_NOTICES.md"]
+dependencies = ["pydantic>=2.11,<3"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Repository = "https://github.com/911061873/pyWecomArchive"
+Issues = "https://github.com/911061873/pyWecomArchive/issues"
+
+[dependency-groups]
+dev = ["build>=1.2", "pytest>=8", "ruff>=0.11", "twine>=6", "wheel>=0.45", "setuptools>=77", "packaging>=24", "pyelftools>=0.32"]
+linux = ["auditwheel>=6; sys_platform == 'linux'", "patchelf>=0.17; sys_platform == 'linux'"]
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
+
+[tool.setuptools.package-data]
+pywecomarchive = ["py.typed", "lib/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.release-readiness]
+# 完成许可证选择及第三方条款核实后，补充实际声明文件，再修改此处。
+python-license-confirmed = false
+third-party-redistribution-confirmed = false
+

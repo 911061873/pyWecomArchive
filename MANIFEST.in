@@ -1,0 +1,4 @@
+include README.md THIRD_PARTY_NOTICES.md
+recursive-include src/pywecomarchive/lib *.dll *.so
+include src/pywecomarchive/py.typed
+
