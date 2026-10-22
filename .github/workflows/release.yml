@@ -113,4 +113,3 @@ jobs:
         run: |
           python -c "from pathlib import Path; p=list(Path('dist').glob('*.whl')); assert len(p)==3, p; assert all(any(t in f.name for f in p) for t in ('win_amd64', 'x86_64', 'aarch64')), p"
       - uses: pypa/gh-action-pypi-publish@release/v1
-
