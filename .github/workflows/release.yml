@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONUTF8: '1'
+
 jobs:
   test:
     name: Python ${{ matrix.python }} 测试
@@ -78,9 +81,9 @@ jobs:
             smoke_python=.venv-smoke/bin/python
           fi
           uv pip install --python "$smoke_python" wheelhouse/*.whl
-          "$smoke_python" -I scripts/smoke_native.py
+          "$smoke_python" -X utf8 -I scripts/smoke_native.py
           uv pip install --python "$smoke_python" pytest
-          "$smoke_python" -I -m pytest tests
+          "$smoke_python" -X utf8 -I -m pytest tests
       - uses: actions/upload-artifact@v4
         with:
           name: wheel-${{ matrix.platform }}
@@ -151,5 +154,5 @@ jobs:
             index_python=.venv-index/bin/python
           fi
           uv pip install --python "$index_python" --index-url https://pypi.org/simple test-wheel/*.whl pytest
-          "$index_python" -I scripts/smoke_native.py
-          "$index_python" -I -m pytest tests
+          "$index_python" -X utf8 -I scripts/smoke_native.py
+          "$index_python" -X utf8 -I -m pytest tests

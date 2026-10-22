@@ -26,7 +26,11 @@ def verify(path):
         raise AssertionError(f"平台标签无效：{platforms}")
     with ZipFile(path) as archive:
         names = archive.namelist()
-        native = [name for name in names if name.startswith("pywecomarchive/lib/")]
+        native = [
+            name
+            for name in names
+            if name.startswith("pywecomarchive/lib/") and not name.endswith("/")
+        ]
         assert len(native) == count, native
         assert all(name.startswith(f"pywecomarchive/lib/{target}") for name in native)
         assert "pywecomarchive/py.typed" in names
