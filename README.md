@@ -2,7 +2,7 @@
 
 企业微信会话内容存档 SDK 的同步 Python 封装，提供消息拉取、消息解密和媒体分块下载，使用 Pydantic 模型返回结构化数据。
 
-目前处于首版发布准备阶段，尚未发布到 PyPI；许可证和第三方二进制再分发条款待确认。
+Python 封装采用 MIT。发布顺序为 TestPyPI 测试后再手动发布正式 PyPI；第三方二进制许可状态见文末说明。
 
 ## 安装与平台
 
@@ -84,16 +84,21 @@ Linux 任务输出 ELF 依赖与符号版本，再使用 auditwheel 检测并修
 
 首次发布前：
 
-1. 选择 Python 代码许可证，添加 `LICENSE`，在 `pyproject.toml` 中补充实际许可元数据及需要随 wheel 分发的许可文件。
-2. 核实 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 列出的官方 SDK、OpenSSL、curl 及传递依赖条款，加入相应原始许可和声明，并检查修复后的 wheel。
-3. 完成核实后，将 `[tool.release-readiness]` 的两个确认值设为 `true`；此前标签发布会被 `scripts/check_release.py` 阻止。
-4. 在 GitHub 创建 `pypi` environment，按需设置审批及允许发布的标签规则。
-5. 在 PyPI 的 Publishing 设置创建 Pending Publisher（已有项目则添加 Trusted Publisher）：Owner `911061873`、Repository `pyWecomArchive`、Workflow `release.yml`、Environment `pypi`、项目名 `pywecomarchive`。无需 PyPI token。
-6. 确认名称仍可注册，更新项目版本并提交。经用户授权推送分支和匹配版本标签，例如 `v0.1.0`。
+1. 在 GitHub 创建 `testpypi` 和 `pypi` environments，按需设置审批及允许发布的标签规则。
+2. 登录 [TestPyPI](https://test.pypi.org/manage/account/publishing/)，创建 Pending Publisher：项目名 `pywecomarchive`、Owner `911061873`、Repository `pyWecomArchive`、Workflow `release.yml`、Environment `testpypi`。
+3. 正式发布前，在 [PyPI](https://pypi.org/manage/account/publishing/) 创建另一个 Pending Publisher：项目名、Owner、Repository 相同，Workflow 改为 `publish-pypi.yml`、Environment 为 `pypi`。两个站点账号及信任配置互相独立，均不需要 token。
+4. 确认名称仍可注册，更新项目版本并提交。推送轻量版本标签，例如 `v0.1.0`。
 
-标签触发后，所有测试和三平台构建通过，版本与许可检查通过，才通过 OIDC 上传 PyPI。PyPI 同一版本文件不能覆盖；失败时先检查哪些文件已经上传。
-发布后检查 PyPI 文件列表包含三个平台，并在各目标平台用独立环境从 PyPI 安装，重复原生冒烟验证。
+标签触发后，所有测试和三平台构建通过，版本与许可确认检查通过，才通过 OIDC 上传 TestPyPI。
+后续三个平台分别从 TestPyPI 下载自己的 wheel，与构建产物逐文件核对 SHA256，再在独立环境安装并运行原生冒烟及测试。依赖仅从正式 PyPI 获取，避免混合索引解析依赖。
+
+TestPyPI 验证成功后，在 GitHub Actions 手动运行 `publish-pypi.yml`，输入该次 `release.yml` 的运行 ID（运行页面 URL 中的数字）。
+流程核对来源运行、标签提交和三个平台测试结果，重新核对 TestPyPI 文件 SHA256，然后将同一批 wheel 上传正式 PyPI，不重新构建。
+因此，推送标签不会自动发布到正式 PyPI。构建产物须仍在 GitHub Actions 保留期内；过期后需要使用新版本重新测试发布。
+同一版本文件不能覆盖；失败时先检查已上传文件，再决定重试或使用新版本，不自动跳过已有文件。
+正式发布后检查 PyPI 文件列表包含三个平台，并在各目标平台用独立环境从 PyPI 安装，重复原生冒烟验证。
 
 ## 许可状态
 
-Python 封装许可证待定；第三方二进制许可待核实。当前未授予额外再分发权利，正式上传处于阻断状态。
+Python 封装采用 [MIT](LICENSE)。维护者已授权分发项目现有二进制，但其上游许可并未独立核实；没有许可声明本身不等于授予再分发许可。
+附带 SDK、DLL 及修复 wheel 时加入的共享库不适用本项目 MIT 许可证，详细状态见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

@@ -87,14 +87,14 @@ jobs:
           path: wheelhouse/*.whl
           if-no-files-found: error
 
-  publish:
-    name: 发布 PyPI
+  testpypi:
+    name: 发布 TestPyPI
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [test, build]
     runs-on: ubuntu-latest
     environment:
-      name: pypi
-      url: https://pypi.org/p/pywecomarchive
+      name: testpypi
+      url: https://test.pypi.org/p/pywecomarchive
     permissions:
       id-token: write
     steps:
@@ -113,3 +113,43 @@ jobs:
         run: |
           python -c "from pathlib import Path; p=list(Path('dist').glob('*.whl')); assert len(p)==3, p; assert all(any(t in f.name for f in p) for t in ('win_amd64', 'x86_64', 'aarch64')), p"
       - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  verify-testpypi:
+    name: 从 TestPyPI 安装验证 ${{ matrix.platform }}
+    needs: testpypi
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win_amd64
+          - os: ubuntu-24.04
+            platform: linux_x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux_aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-${{ matrix.platform }}
+          path: expected
+      - name: 下载 TestPyPI wheel 并核对构建产物哈希
+        run: uv run --no-project --python 3.12 python scripts/download_testpypi.py
+      - name: 独立安装和运行测试
+        shell: bash
+        run: |
+          uv venv .venv-index --python 3.12
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            index_python=.venv-index/Scripts/python.exe
+          else
+            index_python=.venv-index/bin/python
+          fi
+          uv pip install --python "$index_python" --index-url https://pypi.org/simple test-wheel/*.whl pytest
+          "$index_python" -I scripts/smoke_native.py
+          "$index_python" -I -m pytest tests

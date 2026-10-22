@@ -1,0 +1,80 @@
+name: 将已验证的 TestPyPI 产物发布到 PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_run_id:
+        description: 已成功完成三平台 TestPyPI 安装验证的 release.yml 运行 ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source:
+    name: 核实来源运行
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+      tag: ${{ steps.source.outputs.tag }}
+    steps:
+      - uses: actions/github-script@v7
+        id: source
+        env:
+          SOURCE_RUN: ${{ inputs.test_run_id }}
+        with:
+          script: |
+            if (!/^\d+$/.test(process.env.SOURCE_RUN)) throw new Error('运行 ID 必须是数字');
+            const runId = Number(process.env.SOURCE_RUN);
+            const {owner, repo} = context.repo;
+            const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id: runId});
+            const {data: workflow} = await github.rest.actions.getWorkflow({owner, repo, workflow_id: 'release.yml'});
+            if (run.workflow_id !== workflow.id || run.event !== 'push' ||
+                run.status !== 'completed' || run.conclusion !== 'success' ||
+                !run.head_branch.startsWith('v')) throw new Error('来源必须是已成功完成的版本标签测试发布');
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {owner, repo, run_id: runId, filter: 'latest'});
+            const verification = jobs.filter(job => job.name.startsWith('从 TestPyPI 安装验证 '));
+            if (verification.length !== 3 || verification.some(job => job.conclusion !== 'success'))
+              throw new Error('三平台 TestPyPI 验证未全部通过');
+            const {data: tag} = await github.rest.git.getRef({owner, repo, ref: `tags/${run.head_branch}`});
+            if (tag.object.type !== 'commit' || tag.object.sha !== run.head_sha)
+              throw new Error('来源标签已移动或不是轻量标签');
+            core.setOutput('sha', run.head_sha);
+            core.setOutput('tag', run.head_branch);
+
+  publish:
+    name: 发布已验证的原始 wheel
+    needs: source
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pywecomarchive
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 核实原始版本和许可条件
+        env:
+          GITHUB_REF_NAME: ${{ needs.source.outputs.tag }}
+        run: python scripts/check_release.py
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.test_run_id }}
+          github-token: ${{ github.token }}
+          pattern: wheel-*
+          merge-multiple: true
+          path: expected
+      - name: 核对全部原始产物和 TestPyPI 文件一致
+        run: python scripts/download_testpypi.py --all
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: test-wheel/

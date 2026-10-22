@@ -8,6 +8,8 @@ dist/
 wheelhouse/
 .pytest_cache/
 .ruff_cache/
+expected/
+test-wheel/
 .env
 .env.*
 !.env.example
