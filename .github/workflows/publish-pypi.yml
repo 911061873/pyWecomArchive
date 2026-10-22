@@ -64,8 +64,8 @@ jobs:
           python-version: '3.12'
       - name: 核实原始版本和许可条件
         env:
-          GITHUB_REF_NAME: ${{ needs.source.outputs.tag }}
-        run: python scripts/check_release.py
+          RELEASE_TAG: ${{ needs.source.outputs.tag }}
+        run: python -c "import os, runpy; os.environ['GITHUB_REF_NAME'] = os.environ['RELEASE_TAG']; runpy.run_path('scripts/check_release.py', run_name='__main__')"
       - uses: actions/download-artifact@v4
         with:
           run-id: ${{ inputs.test_run_id }}
