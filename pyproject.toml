@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pywecomarchive"
-version = "0.1.0"
+version = "0.1.1"
 description = "企业微信会话内容存档原生 SDK 的 Python 封装"
 readme = "README.md"
 requires-python = ">=3.10"
