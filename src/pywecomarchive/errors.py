@@ -1,4 +1,4 @@
-"""SDK 异常，不包含凭据或消息正文。"""
+"""SDK 异常及服务端错误信息。"""
 
 from types import MappingProxyType
 
@@ -40,10 +40,12 @@ class SdkClosedError(SdkError):
 class SdkCallError(SdkError):
     """原生函数或业务响应返回非零错误码。"""
 
-    def __init__(self, operation: str, code: int):
+    def __init__(self, operation: str, code: int, errmsg: str | None = None):
         self.operation = operation
         self.code = code
         self.message = SDK_ERROR_MESSAGES.get(code, "未知 SDK 错误")
+        if code not in SDK_ERROR_MESSAGES and isinstance(errmsg, str) and errmsg:
+            self.message = f"{self.message}，服务端错误信息：{errmsg}"
         super().__init__(
             f"{operation} 调用失败，错误码：{code}，错误信息：{self.message}"
         )
