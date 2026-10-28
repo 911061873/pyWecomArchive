@@ -39,8 +39,16 @@ jobs:
             if (verification.length !== 3 || verification.some(job => job.conclusion !== 'success'))
               throw new Error('三平台 TestPyPI 验证未全部通过');
             const {data: tag} = await github.rest.git.getRef({owner, repo, ref: `tags/${run.head_branch}`});
-            if (tag.object.type !== 'commit' || tag.object.sha !== run.head_sha)
-              throw new Error('来源标签已移动或不是轻量标签');
+            let target = tag.object;
+            const visited = new Set();
+            while (target.type === 'tag') {
+              if (visited.has(target.sha)) throw new Error('来源标签引用存在循环');
+              visited.add(target.sha);
+              const {data: annotatedTag} = await github.rest.git.getTag({owner, repo, tag_sha: target.sha});
+              target = annotatedTag.object;
+            }
+            if (target.type !== 'commit' || target.sha !== run.head_sha)
+              throw new Error('来源标签已移动或未指向已验证的提交');
             core.setOutput('sha', run.head_sha);
             core.setOutput('tag', run.head_branch);
 
