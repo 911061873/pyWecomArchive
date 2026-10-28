@@ -19,6 +19,7 @@ from ._validation import (
 )
 from .errors import (
     SDK_ERROR_TYPES,
+    SdkBusinessError,
     SdkCallError,
     SdkClosedError,
     SdkError,
@@ -75,15 +76,15 @@ class SdkAdapter:
             raise SdkClosedError("SDK 已经关闭")
 
     @staticmethod
-    def _check(operation: str, code: int | None, errmsg: str | None = None) -> None:
+    def _check(operation: str, code: int | None) -> None:
         if type(code) is not int:
-            raise SdkResponseError(f"{operation} 返回无效的业务错误码")
+            raise SdkResponseError(f"{operation} 返回无效的 SDK 错误码")
         if code == 0:
             return
         error_type = SDK_ERROR_TYPES.get(code)
         if error_type is not None:
             raise error_type(operation)
-        raise SdkCallError(operation, code, errmsg)
+        raise SdkCallError(operation, code)
 
     @staticmethod
     def _parse_json(raw: bytes, operation: str) -> dict[str, Any]:
@@ -117,7 +118,10 @@ class SdkAdapter:
                 self._utils.get_content_from_slice(buffer), "GetChatData"
             )
             code = result.get("errcode", None)
-            self._check("GetChatData", code, result.get("errmsg"))
+            if type(code) is not int:
+                raise SdkResponseError("GetChatData 返回无效的业务错误码")
+            if code != 0:
+                raise SdkBusinessError("GetChatData", code, result.get("errmsg"))
             try:
                 return ChatDataResponse.model_validate(result)
             except ValidationError:

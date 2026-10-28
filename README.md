@@ -178,7 +178,8 @@ except SdkError:
 | --- | --- |
 | `ValidationError` | Pydantic 参数校验失败 |
 | `SdkLoadError` | 原生 SDK 加载失败或平台不受支持 |
-| `SdkCallError` | SDK 调用或业务响应返回非零错误码 |
+| `SdkCallError` | 原生 SDK 调用返回非零错误码 |
+| `SdkBusinessError` | SDK 调用成功，但业务响应的 `errcode` 非零；保留服务端 `errmsg` |
 | `SdkResponseError` | 响应内容、消息模型或媒体续传索引不符合预期 |
 | `SdkClosedError` | 客户端关闭后继续调用 |
 

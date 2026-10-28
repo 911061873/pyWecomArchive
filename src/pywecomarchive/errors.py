@@ -38,16 +38,26 @@ class SdkClosedError(SdkError):
 
 
 class SdkCallError(SdkError):
-    """原生函数或业务响应返回非零错误码。"""
+    """原生 SDK 函数返回非零错误码。"""
+
+    def __init__(self, operation: str, code: int):
+        self.operation = operation
+        self.code = code
+        self.message = SDK_ERROR_MESSAGES.get(code, "未知 SDK 错误")
+        super().__init__(
+            f"{operation} 调用失败，错误码：{code}，错误信息：{self.message}"
+        )
+
+
+class SdkBusinessError(SdkError):
+    """SDK 调用成功，但服务端业务响应返回非零 errcode。"""
 
     def __init__(self, operation: str, code: int, errmsg: str | None = None):
         self.operation = operation
         self.code = code
-        self.message = SDK_ERROR_MESSAGES.get(code, "未知 SDK 错误")
-        if code not in SDK_ERROR_MESSAGES and isinstance(errmsg, str) and errmsg:
-            self.message = f"{self.message}，服务端错误信息：{errmsg}"
+        self.message = errmsg if isinstance(errmsg, str) and errmsg else "未知业务错误"
         super().__init__(
-            f"{operation} 调用失败，错误码：{code}，错误信息：{self.message}"
+            f"{operation} 业务处理失败，错误码：{code}，错误信息：{self.message}"
         )
 
 

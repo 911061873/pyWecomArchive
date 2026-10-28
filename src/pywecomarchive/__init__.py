@@ -2,6 +2,7 @@
 
 from .client import WecomArchiveSdk
 from .errors import (
+    SdkBusinessError,
     SdkCallError,
     SdkClosedError,
     SdkDataExpiredError,
@@ -41,6 +42,7 @@ __all__ = [
     "WecomArchiveSdk",
     "MediaData",
     "SdkCallError",
+    "SdkBusinessError",
     "SdkClosedError",
     "SdkError",
     "SdkLoadError",

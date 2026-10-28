@@ -9,7 +9,12 @@ from pydantic import ValidationError
 
 from pywecomarchive import SdkClosedError, SdkResponseError, WecomArchiveSdk
 from pywecomarchive._buffers import NativeBuffers
-from pywecomarchive.errors import SdkCallError, SdkError
+from pywecomarchive.errors import (
+    SdkBusinessError,
+    SdkCallError,
+    SdkError,
+    SdkNetworkError,
+)
 from pywecomarchive.models import parse_message
 
 
@@ -78,6 +83,32 @@ def test_chat_failure_releases_buffer(native, failure):
     with WecomArchiveSdk("corp", "secret") as sdk:
         with pytest.raises((SdkCallError, SdkResponseError)):
             sdk.get_chat_data()
+    binding.lib.FreeSlice.assert_called_once_with(456)
+
+
+@pytest.mark.parametrize("code", [10001, 99999])
+@pytest.mark.parametrize("errmsg", ["服务端业务错误", "", None])
+def test_business_error_is_separate_from_sdk_error(native, code, errmsg):
+    binding, payload = native
+    payload.update(errcode=code, errmsg=errmsg)
+    with WecomArchiveSdk("corp", "secret") as sdk:
+        with pytest.raises(SdkBusinessError) as caught:
+            sdk.get_chat_data()
+    assert not isinstance(caught.value, SdkCallError)
+    assert caught.value.code == code
+    assert caught.value.message == (errmsg or "未知业务错误")
+    assert caught.value.message in str(caught.value)
+    binding.lib.FreeSlice.assert_called_once_with(456)
+
+
+def test_sdk_error_takes_precedence_over_business_response(native):
+    binding, payload = native
+    binding.lib.GetChatData.return_value = 10001
+    payload.update(errcode=99999, errmsg="业务错误")
+    with WecomArchiveSdk("corp", "secret") as sdk:
+        with pytest.raises(SdkNetworkError) as caught:
+            sdk.get_chat_data()
+    assert caught.value.message == "网络请求错误"
     binding.lib.FreeSlice.assert_called_once_with(456)
 
 
